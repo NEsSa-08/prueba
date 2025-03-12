@@ -1,8 +1,18 @@
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
+// Clase de conexión a la base de datos
+class ConexionDB {
+    private static final String URL = "jdbc:mysql://localhost:3306/dbtaller";
+    private static final String USER = "root";
+    private static final String PASSWORD = "0803";
 
+    public static Connection conectar() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+}
+
+// Clase para Profesor
 class Profesor {
     private int claveProfesor;
     private String nombreProfesor;
@@ -16,17 +26,6 @@ class Profesor {
     public String getNombreProfesor() { return nombreProfesor; }
 }
 
-class ConexionDB {
-    private static final String URL = "jdbc:mysql://localhost:3306/dbtaller";
-    private static final String USER = "root";
-    private static final String PASSWORD = "0803";
-
-    public static Connection conectar() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
-    }
-}
-
-// CRUD para Profesor
 class ProfesorDAO {
     public void create(Profesor profesor) throws SQLException {
         String sql = "INSERT INTO profesor (nombre_profesor) VALUES (?)";
@@ -64,5 +63,3 @@ class ProfesorDAO {
         }
     }
 }
-
-

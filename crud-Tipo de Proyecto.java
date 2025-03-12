@@ -1,66 +1,120 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.*;
 
-public class TipoProyectoCRUD {
-
+// Clase para conexión a la base de datos
+class ConexionDB {
     private static final String URL = "jdbc:mysql://localhost:3306/dbtaller";
     private static final String USER = "root";
     private static final String PASSWORD = "0803";
 
-    public static void main(String[] args) {
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
-            
-            crearTipoProyecto(conn, "Investigación");
-           
-            leerTiposProyecto(conn);
+    public static Connection conectar() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+}
 
-            actualizarTipoProyecto(conn, 1, "Desarrollo Tecnológico");
+// Clase para Tipo de Proyecto
+class TipoProyecto {
+    private int claveTipo;
+    private String nombreTipo;
 
-            eliminarTipoProyecto(conn, 1);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public TipoProyecto(int claveTipo, String nombreTipo) {
+        this.claveTipo = claveTipo;
+        this.nombreTipo = nombreTipo;
     }
 
-    private static void crearTipoProyecto(Connection conn, String nombre) throws SQLException {
+    public int getClaveTipo() { return claveTipo; }
+    public String getNombreTipo() { return nombreTipo; }
+}
+
+class TipoProyectoDAO {
+    public void create(TipoProyecto tipo) throws SQLException {
         String sql = "INSERT INTO tipoproyec (nombre_tipo) VALUES (?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, nombre);
-            pstmt.executeUpdate();
-            System.out.println("Tipo de proyecto creado: " + nombre);
+        try (Connection conn = ConexionDB.conectar(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, tipo.getNombreTipo());
+            stmt.executeUpdate();
         }
     }
 
-    private static void leerTiposProyecto(Connection conn) throws SQLException {
+    public List<TipoProyecto> read() throws SQLException {
+        List<TipoProyecto> tipos = new ArrayList<>();
         String sql = "SELECT * FROM tipoproyec";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+        try (Connection conn = ConexionDB.conectar(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                System.out.println("Clave: " + rs.getInt("clave_tipo") + ", Nombre: " + rs.getString("nombre_tipo"));
+                tipos.add(new TipoProyecto(rs.getInt("clave_tipo"), rs.getString("nombre_tipo")));
             }
         }
+        return tipos;
     }
 
-    private static void actualizarTipoProyecto(Connection conn, int clave, String nuevoNombre) throws SQLException {
+    public void update(TipoProyecto tipo) throws SQLException {
         String sql = "UPDATE tipoproyec SET nombre_tipo = ? WHERE clave_tipo = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, nuevoNombre);
-            pstmt.setInt(2, clave);
-            pstmt.executeUpdate();
-            System.out.println("Tipo de proyecto actualizado: " + clave);
+        try (Connection conn = ConexionDB.conectar(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, tipo.getNombreTipo());
+            stmt.setInt(2, tipo.getClaveTipo());
+            stmt.executeUpdate();
         }
     }
 
-    private static void eliminarTipoProyecto(Connection conn, int clave) throws SQLException {
+    public void delete(int claveTipo) throws SQLException {
         String sql = "DELETE FROM tipoproyec WHERE clave_tipo = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, clave);
-            pstmt.executeUpdate();
-            System.out.println("Tipo de proyecto eliminado: " + clave);
+        try (Connection conn = ConexionDB.conectar(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, claveTipo);
+            stmt.executeUpdate();
         }
     }
 }
+
+public class MenuTipoProyecto {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        TipoProyectoDAO dao = new TipoProyectoDAO();
+
+        while (true) {
+            System.out.println("1. Agregar Tipo de Proyecto");
+            System.out.println("2. Mostrar Tipos de Proyecto");
+            System.out.println("3. Actualizar Tipo de Proyecto");
+            System.out.println("4. Eliminar Tipo de Proyecto");
+            System.out.println("5. Salir");
+            System.out.print("Seleccione una opción: ");
+            int opcion = scanner.nextInt();
+            scanner.nextLine();
+
+            try {
+                switch (opcion) {
+                    case 1:
+                        System.out.print("Ingrese nombre del tipo de proyecto: ");
+                        String nombre = scanner.nextLine();
+                        dao.create(new TipoProyecto(0, nombre));
+                        break;
+                    case 2:
+                        for (TipoProyecto t : dao.read()) {
+                            System.out.println(t.getClaveTipo() + " - " + t.getNombreTipo());
+                        }
+                        break;
+                    case 3:
+                        System.out.print("Ingrese clave del tipo a actualizar: ");
+                        int clave = scanner.nextInt();
+                        scanner.nextLine();
+                        System.out.print("Ingrese nuevo nombre: ");
+                        String nuevoNombre = scanner.nextLine();
+                        dao.update(new TipoProyecto(clave, nuevoNombre));
+                        break;
+                    case 4:
+                        System.out.print("Ingrese clave del tipo a eliminar: ");
+                        int claveEliminar = scanner.nextInt();
+                        dao.delete(claveEliminar);
+                        break;
+                    case 5:
+                        System.out.println("Saliendo...");
+                        scanner.close();
+                        return;
+                    default:
+                        System.out.println("Opción no válida.");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
